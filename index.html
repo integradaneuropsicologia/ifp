@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>IFP-2 — Autorrelato</title>
+<style>
+  :root{
+    --bg:#0e1625; --card:#14213b; --line:#2b3f66;
+    --text:#f8fafc; --muted:#cbd5e1;
+    --pri:#6d28d9; --ok:#10b981; --err:#ef4444; --warn:#f59e0b;
+    --chip:#0b1220; --chipHover:#0f1a2e;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+  .wrap{max-width:1024px;margin:20px auto;padding:0 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  h1{margin:0 0 6px;font-size:1.45rem}
+  .muted{color:var(--muted)}
+  .grid-info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0 6px}
+  @media (max-width:720px){.grid-info{grid-template-columns:1fr}}
+  .info{background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .info b{display:block;margin-bottom:4px;color:#e2e8f0}
+
+  /* ===== ITENS ===== */
+  .item{
+    border:1px solid var(--line);border-radius:12px;padding:12px;
+    background:rgba(0,0,0,.18);margin-bottom:12px
+  }
+  .stem{font-size:1rem;margin-bottom:10px}
+  .scale{display:grid;gap:8px}
+  .ends{display:flex;justify-content:space-between;align-items:flex-end}
+  .ends span{font-size:.9rem;color:var(--muted)}
+  .rail{position:relative;padding:10px 0}
+  input[type="range"]{
+    width:100%;appearance:none;background:transparent;height:28px;
+  }
+  /* trilho */
+  input[type="range"]::-webkit-slider-runnable-track{
+    height:8px;border-radius:999px;
+    background:linear-gradient(90deg, #2b3f66, #6d28d9);
+  }
+  input[type="range"]::-moz-range-track{
+    height:8px;border-radius:999px;background:linear-gradient(90deg, #2b3f66, #6d28d9);
+  }
+  /* polegar */
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:22px;height:22px;border-radius:999px;
+    background:#fff;border:3px solid #6d28d9;margin-top:-7px;cursor:pointer;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:22px;height:22px;border-radius:999px;background:#fff;border:3px solid #6d28d9;cursor:pointer;
+  }
+  .ticks{display:grid;grid-template-columns:repeat(7,1fr);margin-top:6px}
+  .tick{font-size:.85rem;color:var(--muted);text-align:center}
+  .valpill{display:inline-block;font-weight:700;padding:4px 8px;border-radius:8px;background:#0b1220;border:1px solid var(--line);min-width:40px;text-align:center}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+
+  /* Progresso / ações / msgs */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--line);background:rgba(0,0,0,.25);font-size:.86rem}
+  .btn{display:inline-flex;align-items:center;gap:10px;background:var(--pri);border:none;color:#fff;padding:12px 16px;border-radius:12px;cursor:pointer;font-weight:600}
+  .btn.ok{background:var(--ok)} .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .msg{margin:12px 0;padding:12px;border-radius:10px}
+  .okbox{background:#06351f;border:1px solid #0e6c45;color:#c8ffe3}
+  .errbox{background:#3b0d0d;border:1px solid #7f1d1d;color:#ffd5d5}
+  .warnbox{background:#3a2903;border:1px solid #885e09;color:#ffe6b0}
+  .progress{height:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .bar{height:100%;width:0%;background:linear-gradient(90deg, #6d28d9, #10b981)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>IFP-2 — Inventário Fatorial da Personalidade</h1>
+    <p class="muted">Arraste o controle de cada item pela escala de 1 a 7. 1 = <b>Descreve-me muito mal</b> · 7 = <b>Descreve-me muito bem</b>.</p>
+
+    <div class="legend">
+      <span class="pill">1 muito mal</span><span class="pill">2</span><span class="pill">3</span>
+      <span class="pill">4</span><span class="pill">5</span><span class="pill">6</span><span class="pill">7 muito bem</span>
+    </div>
+
+    <div id="pacInfo" class="grid-info" style="display:none;"></div>
+
+    <div id="progressWrap" style="display:none; gap:8px; align-items:center; margin:8px 0 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">
+        <span class="muted" id="progressText">Progresso: 0/100</span>
+        <button id="clearDraft" class="btn ghost" type="button">Limpar rascunho</button>
+      </div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+    </div>
+
+    <form id="form" style="margin-top:14px; display:none;" novalidate>
+      <div id="qs"></div>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <button id="btnSubmit" class="btn ok" type="submit">Enviar respostas</button>
+        <button id="btnSave" class="btn ghost" type="button">Salvar rascunho</button>
+      </div>
+      <div id="msg" class="msg" style="display:none" role="alert" aria-live="polite"></div>
+    </form>
+
+    <div id="alert" class="msg" style="display:none" role="alert" aria-live="assertive"></div>
+  </div>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const SHEETDB_BASE = "https://sheetdb.io/api/v1/8pmdh33s9fvy8";
+const SHEETS = { PATIENTS:"Patients", TOKENS:"LinkTokens", SCORES:"Score_IFP2" };
+const CODE = "IFP";
+const PORTAL_URL = "https://integradaneuropsicologia.github.io/formularios/";
+const RELEASE_KEYS = ["IFP"];
+
+/* ===== HELPERS ===== */
+const $ = s => document.querySelector(s);
+const onlyDigits = s => (s||"").replace(/\D+/g,"");
+const qs = k => new URLSearchParams(location.search).get(k) || "";
+function setBox(id, text, kind="ok"){ const el=$(id); if(!el) return; el.textContent=text; el.className="msg "+(kind==="ok"?"okbox":kind==="warn"?"warnbox":"errbox"); el.style.display="block"; }
+function hideBox(id){ const el=$(id); if(el){ el.style.display="none"; el.textContent=""; } }
+function maskCPF(cpf){ const d=onlyDigits(cpf||""); if(d.length!==11) return cpf||""; return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`; }
+function fmtDateISO(iso){ if(!iso) return ""; const [y,m,d]=iso.split("-"); if(!y||!m||!d) return iso; return `${d}/${m}/${y}`; }
+async function GET(url){ const r=await fetch(url); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); }
+async function sheetSearch(sheet, params){ const usp = new URLSearchParams(params); return GET(`${SHEETDB_BASE}/search?sheet=${encodeURIComponent(sheet)}&${usp.toString()}`); }
+async function sheetCreate(sheet, row){ const r = await fetch(`${SHEETDB_BASE}?sheet=${encodeURIComponent(sheet)}`, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ data:[row] }) }); if(!r.ok) throw new Error(await r.text()); return r.json(); }
+async function sheetPatchBy(sheet, column, value, data){ const r = await fetch(`${SHEETDB_BASE}/${encodeURIComponent(column)}/${encodeURIComponent(value)}?sheet=${encodeURIComponent(sheet)}`, { method:"PATCH", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ data }) }); if(!r.ok) throw new Error(await r.text()); return r.json(); }
+function goPortalWithToken(){
+  const TOKEN = qs("token");
+  try{
+    const u = new URL(PORTAL_URL, location.href);
+    u.searchParams.set("token", TOKEN);
+    location.href = u.toString();
+  }catch(_){
+    const sep = PORTAL_URL.includes("?") ? "&" : "?";
+    location.href = PORTAL_URL + sep + "token=" + encodeURIComponent(TOKEN);
+  }
+}
+
+/* ===== ITENS (100) ===== */
+const ITEMS = [
+ "1. Gosto de fazer coisas que outras pessoas consideram fora do comum.",
+ "2. Gostaria de realizar um grande feito ou grande obra na minha vida.",
+ "3. Gosto de experimentar novidades e mudanças em meu dia-a-dia.",
+ "4. Não gosto de situações em que se exige que eu me comporte de determinada maneira.",
+ "5. Gosto de dizer o que eu penso a respeito das coisas.",
+ "6. Gosto de saber o que grandes personalidades disseram sobre os problemas pelos quais eu me interesso.",
+ "7. Gosto de ser capaz de fazer as coisas melhor do que as outras pessoas.",
+ "8. Gosto de concluir qualquer trabalho ou tarefa que tenha começado.",
+ "9. Gosto de ajudar meus amigos quando eles estão com problemas.",
+ "10. Não costumo abandonar um quebra-cabeça ou problema antes que consiga resolvê-lo.",
+ "11. Gosto de dizer aos outros como fazer seus trabalhos.",
+ "12. Gostaria de ser considerado(a) uma autoridade em algum trabalho, profissão ou campo de especialização.",
+ "13. Gosto de experimentar e provar coisas novas.",
+ "14. Quando tenho alguma tarefa para fazer, gosto de começar logo e permanecer trabalhando até completá-la.",
+ "15. Aceito com prazer a liderança das pessoas que admiro.",
+ "16. Gosto de trabalhar horas a fio sem ser interrompido(a).",
+ "17. Gosto que meus amigos me dêem muita atenção quando estou sofrendo ou doente.",
+ "18. Costumo analisar minhas intenções e sentimentos.",
+ "19. Gosto de fazer com carinho pequenos favores a meus amigos.",
+ "20. Gosto de ficar acordado(a) até tarde para terminar um trabalho.",
+ "21. Gosto de andar pelo país e viver em lugares diferentes.",
+ "22. Gosto de analisar os sentimentos e intenções dos outros.",
+ "23. Gosto de fazer gozação com pessoas que fazem coisas que eu considero estúpidas.",
+ "24. Tenho vontade de me vingar quando alguém me insulta.",
+ "25. Gosto de pensar sobre o caráter dos meus amigos e tentar descobrir o que os faz serem como são.",
+ "26. Sou leal aos meus amigos.",
+ "27. Gosto de levar um trabalho ou tarefa até o fim antes de começar outro.",
+ "28. Gosto de dizer aos meus superiores que eles fizeram um bom trabalho, quando acredito nisso.",
+ "29. Gosto que meus amigos sejam solidários comigo e me animem quando estou deprimido(a).",
+ "30. Antes de começar um trabalho, gosto de organizá-lo e planejá-lo.",
+ "31. Gosto que meus amigos demostrem muito afeto por mim.",
+ "32. Gosto de realizar tarefas que, na opinião dos outros, exigem habilidade e esforço.",
+ "33. Gosto de ser bem-sucedido nas coisas que faço.",
+ "34. Gosto de fazer amizades.",
+ "35. Gosto de ser considerado(a) um(a) líder pelos outros.",
+ "36. Gosto de realizar com afinco (sem descanso) qualquer trabalho que faço.",
+ "37. Gosto de participar de grupos cujos membros se tratem com afeto e amizade.",
+ "38. Sinto-me satisfeito(a) quando realizo bem um trabalho difícil.",
+ "39. Tenho vontade de mandar os outros calarem a boca quando discordo deles.",
+ "40. Gosto de fazer coisas do meu jeito sem me importar com o que os outros possam pensar.",
+ "41. Gosto de viajar e conhecer o país.",
+ "42. Gosto de me fixar em um trabalho ou problema mesmo quando a solução pareça extremamente difícil.",
+ "43. Gosto de conhecer novas pessoas.",
+ "44. Gosto de dividir coisas com os outros.",
+ "45. Sinto-me satisfeito(a) quando consigo convencer e influenciar os outros.",
+ "46. Gosto de demonstrar muita afeição por meus amigos.",
+ "47. Gosto de prestar favores aos outros.",
+ "48. Gosto de seguir instruções e fazer o que é esperado de mim.",
+ "49. Gosto de elogiar alguém que admiro.",
+ "50. Quando planejo alguma coisa, procuro sugestões de pessoas que respeito.",
+ "51. Gosto de manter minhas coisas limpas e ordenadas em minha escrivaninha ou em meu local de trabalho.",
+ "52. Gosto de manter fortes laços de amizade.",
+ "53. Gosto que meus amigos me ajudem quando estou com problema.",
+ "54. Gosto que meus amigos mostrem boa vontade em me prestar pequenos favores.",
+ "55. Gosto de manter minhas cartas, contas e outros papéis bem arrumados e arquivados de acordo com algum sistema.",
+ "56. Gosto que meus amigos sejam solidários e compreensivos quando tenho problemas.",
+ "57. Prefiro fazer coisas com meus amigos a fazer sozinho.",
+ "58. Gosto de tratar outras pessoas com bondade e compaixão.",
+ "59. Gosto de comer em restaurantes novos e exóticos (diferentes).",
+ "60. Procuro entender como meus amigos se sentem a respeito de problemas que eles enfrentam.",
+ "61. Gosto de ser o centro das atenções em um grupo.",
+ "62. Gosto de ser um dos líderes nas organizações e grupos aos quais pertenço.",
+ "63. Gosto de ser independente dos outros para decidir o que quero fazer.",
+ "64. Gosto de me manter em contato com meus amigos.",
+ "65. Quando participo de uma comissão (reunião), gosto de ser indicado ou eleito presidente.",
+ "66. Gosto de fazer tantos amigos quanto possível.",
+ "67. Gosto de observar como uma outra pessoa se sente numa determinada situação.",
+ "68. Quando estou em um grupo, aceito com prazer a liderança de outra pessoa para decidir o que o grupo fará.",
+ "69. Não gosto de me sentir pressionado(a) por responsabilidades e deveres.",
+ "70. Às vezes, fico tão irritado(a) que sinto vontade de jogar e quebrar coisas.",
+ "71. Gosto de fazer perguntas que ninguém será capaz de responder.",
+ "72. Às vezes, gosto de fazer coisas simplesmente para ver o efeito que terão sobre os outros.",
+ "73. Sou solidário com meus amigos quando machucados ou doentes.",
+ "74. Não tenho medo de criticar pessoas que ocupam posições de autoridade.",
+ "75. Gosto de fiscalizar e dirigir os atos dos outros sempre que posso.",
+ "76. Culpo os outros quando as coisas dão errado comigo.",
+ "77. Gosto de ajudar pessoas que têm menos sorte do que eu.",
+ "78. Gosto de planejar e organizar, em todos os detalhes, qualquer trabalho que eu faço.",
+ "79. Gosto de fazer coisas novas e diferentes.",
+ "80. Gostaria de realizar com sucesso alguma coisa de grande importância.",
+ "81. Quando estou com um grupo de pessoas, gosto de decidir sobre o que vamos fazer.",
+ "82. Interesso-me em conhecer a vida de grandes personalidades.",
+ "83. Procuro me adaptar ao modo de ser das pessoas que admiro.",
+ "84. Gosto de resolver quebra-cabeças e problemas com os quais pessoas têm dificuldades.",
+ "85. Gosto de falar sobre os meus sucessos.",
+ "86. Gosto de dar o melhor de mim em tudo que faço.",
+ "87. Gosto de estudar e analisar o comportamento dos outros.",
+ "88. Gosto de contar aos outros aventuras e coisas estranhas que acontecem comigo.",
+ "89. Perdôo as pessoas que às vezes possam me magoar.",
+ "90. Gosto de prever (entender) como meus amigos irão agir em diferentes situações.",
+ "91. Gosto de me sentir livre para fazer o que quero.",
+ "92. Gosto de me sentir livre para ir e vir quando quiser.",
+ "93. Gosto de usar palavras cujo significado as outras pessoas desconhecem.",
+ "94. Gosto de planejar antes de iniciar algo difícil.",
+ "95. Qualquer trabalho escrito que faço, gosto que seja preciso, limpo e bem-organizado.",
+ "96. Gosto que as pessoas notem e comentem a minha aparência quando estou em público.",
+ "97. Gosto que meus amigos me tratem com delicadeza.",
+ "98. Gosto de ser generoso(a) com os outros.",
+ "99. Gosto de contar estórias e piadas engraçadas em festas.",
+ "100. Gosto de dizer coisas que os outros consideram engraçadas e inteligentes."
+];
+
+/* ===== SUBSETS (fatores) ===== */
+const F = {
+  assistencia: [9,44,47,58,73,77,89,98],
+  intracepcao: [18,22,25,60,67,87,90],
+  afago: [17,29,31,53,54,56,97],
+  deferencia: [6,15,28,48,49,50,68,82,83],
+  afiliacao: [19,26,34,37,46,52,57,64,66],
+  dominancia: [11,35,45,62,65,75,81],
+  desempenho: [2,7,12,32,33,38,80,84,86],
+  exibicao: [61,71,72,85,88,93,96,99,100],
+  agressao: [23,24,39,70,76],
+  ordem: [30,51,55,78,94,95],
+  persistencia: [8,10,14,16,20,27,36,42],
+  mudanca: [3,13,21,41,43,59,79],
+  autonomia: [1,4,5,40,63,69,74,91,92]
+};
+
+/* ===== RENDER ===== */
+function renderQuestions(){
+  const host = $("#qs"); host.innerHTML = "";
+  ITEMS.forEach((text, idx)=>{
+    const q = idx+1, qn = String(q).padStart(2,"0");
+
+    const wrap = document.createElement('div');
+    wrap.className = 'item';
+    wrap.setAttribute('data-q', String(q));
+
+    const stem = document.createElement('div');
+    stem.className = 'stem';
+    stem.id = `s${qn}`;
+    stem.textContent = text;
+
+    const scale = document.createElement('div'); scale.className = 'scale';
+
+    const ends = document.createElement('div');
+    ends.className = 'ends';
+    ends.innerHTML = `<span>Descreve-me muito mal</span><span>Descreve-me muito bem</span>`;
+
+    const rail = document.createElement('div'); rail.className = 'rail';
+    rail.innerHTML = `
+      <input type="range" min="1" max="7" step="1" id="r${qn}" aria-labelledby="s${qn}">
+      <div class="ticks">
+        <div class="tick">1</div><div class="tick">2</div><div class="tick">3</div><div class="tick">4</div><div class="tick">5</div><div class="tick">6</div><div class="tick">7</div>
+      </div>
+    `;
+
+    const controls = document.createElement('div'); controls.className = 'controls';
+    controls.innerHTML = `
+      <span class="muted">Valor escolhido:</span>
+      <span id="v${qn}" class="valpill">—</span>
+      <button class="btn ghost" type="button" id="b${qn}">Limpar</button>
+      <input type="hidden" name="q${qn}" id="h${qn}" value="">
+    `;
+
+    scale.append(ends, rail, controls);
+    wrap.append(stem, scale);
+    host.appendChild(wrap);
+
+    const range = rail.querySelector(`#r${qn}`);
+    const hidden = controls.querySelector(`#h${qn}`);
+    const valpill = controls.querySelector(`#v${qn}`);
+    const btnClear = controls.querySelector(`#b${qn}`);
+
+    range.addEventListener('input', ()=>{
+      hidden.value = range.value;
+      valpill.textContent = range.value;
+      updateProgress(); saveDraft();
+    });
+    btnClear.addEventListener('click', ()=>{
+      hidden.value = ""; valpill.textContent = "—";
+      updateProgress(); saveDraft();
+    });
+  });
+}
+
+/* ===== ESTADO ===== */
+let patient=null, tokenRow=null, CPF="";
+const TOKEN = qs("token");
+const STORAGE_KEY = `IFP2_${TOKEN||'anon'}`;
+
+/* ===== BOOT ===== */
+(async function boot(){
+  try{
+    if(!TOKEN){ setBox("#alert","Link inválido (sem token). Solicite um novo link.","err"); return; }
+
+    const trows = await sheetSearch(SHEETS.TOKENS, { token: TOKEN });
+    if(!trows || !trows.length) throw new Error("Token inválido ou expirado.");
+    tokenRow = trows[0];
+    if(String(tokenRow.disabled||"não").toLowerCase()==="sim") throw new Error("Token desativado. Peça um novo link.");
+    if(tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) throw new Error("Token expirado. Peça um novo link.");
+    CPF = onlyDigits(tokenRow.cpf||""); if(!CPF) throw new Error("Token sem CPF vinculado.");
+
+    const prows = await sheetSearch(SHEETS.PATIENTS, { cpf: CPF });
+    if(!prows || !prows.length) throw new Error("Paciente não encontrado.");
+    patient = prows[0];
+
+    const isAllowed = RELEASE_KEYS.some(k => String(patient[k]||"").trim().toLowerCase()==="sim");
+    if(!isAllowed){ setBox("#alert","Este formulário não está liberado para você.","err"); return; }
+
+    // Já respondeu?
+    const doneKeys = RELEASE_KEYS.map(k => `${k}_FEITO`);
+    const anyDoneFlag = doneKeys.some(k => String(patient[k]||"").trim().toLowerCase()==="sim");
+    const already = await sheetSearch(SHEETS.SCORES, { cpf: CPF, code: CODE });
+    if(anyDoneFlag || (already && already.length)){
+      setBox("#alert","Você já respondeu este formulário. Voltando ao portal…","ok");
+      setTimeout(goPortalWithToken, 1200); return;
+    }
+
+    renderPatientInfo();
+    renderQuestions();
+    restoreDraft();
+    updateProgress();
+
+    $("#pacInfo").style.display = "grid";
+    $("#form").style.display = "block";
+    $("#progressWrap").style.display = "block";
+    hideBox("#alert");
+  }catch(err){
+    console.error(err);
+    setBox("#alert", err.message || "Falha ao abrir o formulário. Tente novamente mais tarde.", "err");
+  }
+})();
+
+function renderPatientInfo(){
+  const g = $("#pacInfo"); g.innerHTML="";
+  const info = [
+    ["Nome", patient.nome || "-"],
+    ["E-mail", patient.email || "-"]
+  ];
+  for(const [k,v] of info){
+    const div = document.createElement("div");
+    div.className = "info";
+    div.innerHTML = `<b>${k}</b><div>${v||"-"}</div>`;
+    g.appendChild(div);
+  }
+}
+
+/* ===== RASCUNHO LOCAL ===== */
+function saveDraft(){
+  const data = {};
+  for(let i=1;i<=ITEMS.length;i++){
+    const qn = String(i).padStart(2,"0");
+    const v = $(`#h${qn}`).value;
+    if(v) data[`q${qn}`] = Number(v);
+  }
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){ console.warn("Sem espaço para salvar rascunho"); }
+}
+function restoreDraft(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    for(const [k,v] of Object.entries(data||{})){
+      const qn = k.replace("q",""); const hid = $(`#h${qn}`); const rng = $(`#r${qn}`); const pill = $(`#v${qn}`);
+      if(hid && rng && pill){ hid.value=String(v); rng.value=String(v); pill.textContent=String(v); }
+    }
+  }catch(e){ /* ignore */ }
+}
+function clearDraft(){ localStorage.removeItem(STORAGE_KEY); }
+
+function countAnswered(){ let c=0; for(let i=1;i<=ITEMS.length;i++){ const qn=String(i).padStart(2,'0'); if($(`#h${qn}`).value) c++; } return c; }
+function updateProgress(){ const a=countAnswered(), t=ITEMS.length; $("#progressText").textContent=`Progresso: ${a}/${t}`; $("#bar").style.width=`${(a/t)*100}%`; }
+
+/* ===== UTIL ===== */
+function sumSet(indices){
+  let s=0;
+  for(const i of indices){
+    const qn = String(i).padStart(2,'0');
+    const v = Number($(`#h${qn}`).value || 0);
+    s += v;
+  }
+  return s;
+}
+
+/* ===== SUBMIT ===== */
+let sending=false;
+$("#form").addEventListener("submit", async (e)=>{
+  e.preventDefault(); if(sending) return; sending=true; hideBox("#msg");
+  const btn=$("#btnSubmit"); const originalText=btn.textContent; btn.disabled=true; btn.textContent="Enviando…";
+  try{
+    if(!patient) throw new Error("Sessão inválida. Recarregue o link.");
+
+    // validar todas respondidas
+    for(let i=1;i<=ITEMS.length;i++){
+      const qn=String(i).padStart(2,'0');
+      if(!$(`#h${qn}`).value){
+        const row=document.querySelector(`.item[data-q="${i}"]`);
+        if(row) row.scrollIntoView({behavior:'smooth', block:'center'});
+        throw new Error(`Responda a questão ${i}.`);
+      }
+    }
+
+    // totais por fator
+    const assistencia = sumSet(F.assistencia);
+    const intracepcao = sumSet(F.intracepcao);
+    const afago = sumSet(F.afago);
+    const deferencia = sumSet(F.deferencia);
+    const afiliacao = sumSet(F.afiliacao);
+    const dominancia = sumSet(F.dominancia);
+    const desempenho = sumSet(F.desempenho);
+    const exibicao = sumSet(F.exibicao);
+    const agressao = sumSet(F.agressao);
+    const ordem = sumSet(F.ordem);
+    const persistencia = sumSet(F.persistencia);
+    const mudanca = sumSet(F.mudanca);
+    const autonomia = sumSet(F.autonomia);
+
+    const necessidades_afetivas = afago + deferencia + mudanca + assistencia + intracepcao + afiliacao;
+    const necessidades_organizacao = desempenho + ordem + persistencia;
+    const necessidade_controle_oposicao = agressao + dominancia + exibicao + autonomia;
+
+    // total geral = soma de todos os 100 itens (1..7)
+    const total = sumSet(Array.from({length:100}, (_,i)=>i+1));
+
+    const categoria_csv = [
+      `assistencia=${assistencia}`,
+      `intracepcao=${intracepcao}`,
+      `afago=${afago}`,
+      `deferencia=${deferencia}`,
+      `afiliacao=${afiliacao}`,
+      `dominancia=${dominancia}`,
+      `desempenho=${desempenho}`,
+      `exibicao=${exibicao}`,
+      `agressao=${agressao}`,
+      `ordem=${ordem}`,
+      `persistencia=${persistencia}`,
+      `mudanca=${mudanca}`,
+      `autonomia=${autonomia}`,
+      `necessidades_afetivas=${necessidades_afetivas}`,
+      `necessidades_organizacao=${necessidades_organizacao}`,
+      `necessidade_controle_oposicao=${necessidade_controle_oposicao}`
+    ].join(',');
+
+    await sheetCreate(SHEETS.SCORES, {
+      result_id: `${patient.cpf}_${CODE}_${Date.now()}`,
+      token: TOKEN,
+      cpf: patient.cpf,
+      code: CODE,
+      source: "paciente",
+      submitted_at: new Date().toISOString(),
+      total: total,
+      categoria: categoria_csv,
+      metrics: ""
+    });
+
+    // marcar como feito
+    const doneUpdates = {};
+    RELEASE_KEYS.map(k=>`${k}_FEITO`).forEach(k=>{ if(k in patient) doneUpdates[k]="sim"; });
+    if(Object.keys(doneUpdates).length===0) doneUpdates[`${RELEASE_KEYS[0]}_FEITO`] = "sim";
+    await sheetPatchBy(SHEETS.PATIENTS, "cpf", patient.cpf, doneUpdates);
+
+    clearDraft();
+    setBox("#msg","Formulário enviado. Voltando ao portal…","ok");
+    setTimeout(goPortalWithToken, 1100);
+
+  }catch(err){
+    console.error(err);
+    setBox("#msg", err.message || "Falha ao enviar. Tente novamente.", "err");
+    sending=false; btn.disabled=false; btn.textContent=originalText;
+  }
+});
+
+/* ===== BOTOES ===== */
+$("#btnSave").addEventListener('click', ()=>{ saveDraft(); setBox('#msg','Rascunho salvo neste dispositivo.','ok'); });
+$("#clearDraft").addEventListener('click', ()=>{ clearDraft(); setBox('#msg','Rascunho apagado.','warn'); });
+</script>
+</body>
+</html>
